@@ -18,7 +18,23 @@ const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] }
 });
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+let redis;
+try {
+  redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  redis.on('error', (err) => {
+    logger.warn(`Redis connection failed (${err.message}). Falling back to in-memory store.`);
+    const RedisMock = require('./utils/redisMock');
+    // Hot-swap instance methods to prevent downstream runtime errors
+    redis.get = async (key) => redisMockInstance.get(key);
+    redis.setex = async (key, ttl, val) => redisMockInstance.setex(key, ttl, val);
+    redis.del = async (key) => redisMockInstance.del(key);
+    redis.ping = async () => 'PONG';
+  });
+  const redisMockInstance = new (require('./utils/redisMock'))();
+} catch (err) {
+  logger.warn('Redis failed to initialize. Using in-memory fallback.');
+  redis = new (require('./utils/redisMock'))();
+}
 
 // ─── Middleware ───────────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));

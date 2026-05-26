@@ -1,8 +1,21 @@
 const Redis = require('ioredis');
 const logger = require('../utils/logger');
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-redis.on('error', (err) => logger.error(`Redis error: ${err.message}`));
+let redis;
+try {
+  redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  redis.on('error', (err) => {
+    logger.warn(`Redis connection failed (${err.message}). Cart using in-memory fallback.`);
+    const RedisMock = require('../utils/redisMock');
+    redis.get = async (key) => redisMockInstance.get(key);
+    redis.setex = async (key, ttl, val) => redisMockInstance.setex(key, ttl, val);
+    redis.del = async (key) => redisMockInstance.del(key);
+  });
+  const redisMockInstance = new (require('../utils/redisMock'))();
+} catch (err) {
+  logger.warn('Redis client initialization failed. Using in-memory store.');
+  redis = new (require('../utils/redisMock'))();
+}
 
 const CART_TTL = 7 * 24 * 60 * 60; // 7 days
 
