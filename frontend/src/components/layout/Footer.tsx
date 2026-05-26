@@ -30,8 +30,17 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Company</h3>
             <ul className="space-y-3">
-              {['About Us', 'Careers', 'Press', 'Blog', 'Contact'].map(item => (
-                <li key={item}><a href="#" className="text-slate-400 hover:text-white text-sm transition-colors duration-200">{item}</a></li>
+              {[
+                { label: 'Home', href: '/' },
+                { label: 'About Us', href: '/about' },
+                { label: 'Restaurants', href: '/restaurants' },
+                { label: 'Contact', href: '/contact' }
+              ].map(item => (
+                <li key={item.label}>
+                  <Link href={item.href} className="text-slate-400 hover:text-white text-sm transition-colors duration-200">
+                    {item.label}
+                  </Link>
+                </li>
               ))}
             </ul>
           </div>
