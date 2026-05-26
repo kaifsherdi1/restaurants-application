@@ -1,0 +1,28 @@
+require('dotenv').config();
+require('express-async-errors');
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const logger = require('./utils/logger');
+const menuRoutes = require('./routes/menu.routes');
+
+const app = express();
+app.use(helmet());
+app.use(cors({ origin: '*' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(morgan('combined', { stream: { write: m => logger.info(m.trim()) } }));
+app.use('/api/v1/menu', menuRoutes);
+app.get('/health', (_, res) => res.json({ status: 'ok', service: 'menu-service' }));
+app.use((err, req, res, next) => res.status(500).json({ success: false, message: err.message }));
+
+const start = async () => {
+  await mongoose.connect(process.env.MONGO_URI);
+  logger.info('✅ Connected to MongoDB (menu-db)');
+  const PORT = process.env.PORT || 3004;
+  app.listen(PORT, () => logger.info(`🚀 Menu Service on port ${PORT}`));
+};
+
+start().catch(err => { logger.error(err); process.exit(1); });
+module.exports = app;
