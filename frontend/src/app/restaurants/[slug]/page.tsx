@@ -55,6 +55,25 @@ export default function RestaurantPage() {
     }
   }
 
+  const handleDirectBuy = (item: any) => {
+    const price = item.discountedPrice || item.price
+    const message = `Hello ${restaurant.name} 👋
+
+I would like to order:
+1. 1x ${item.name} — ₹${price.toLocaleString('en-IN')}
+
+━━━━━━━━━━━━━━━━━━━━
+Total: ₹${price.toLocaleString('en-IN')}
+━━━━━━━━━━━━━━━━━━━━
+
+Please confirm my order! 🙏`
+
+    const cleanPhone = '7483192591'
+    const url = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`
+    window.open(url, '_blank')
+    toast.success('Opening WhatsApp for direct order...')
+  }
+
   const totalItems = Object.values(cart).reduce((a, b) => a + b, 0)
 
   // Load existing cart
@@ -186,24 +205,32 @@ export default function RestaurantPage() {
               </div>
 
               {/* Food image + Add button */}
-              <div className="flex-shrink-0 flex flex-col items-center gap-2">
+              <div className="flex-shrink-0 flex flex-col items-center gap-2 w-24">
                 <div className="w-24 h-20 rounded-xl overflow-hidden">
                   <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                 </div>
-                {cart[item.id] ? (
-                  <div className="flex items-center gap-2 bg-brand-500 rounded-xl px-2 py-1">
-                    <button onClick={() => removeFromCart(item.id)} className="text-white"><Minus size={14} /></button>
-                    <span className="text-white font-bold text-sm w-4 text-center">{cart[item.id]}</span>
-                    <button onClick={() => addToCart(item)} className="text-white"><Plus size={14} /></button>
-                  </div>
-                ) : (
+                <div className="flex flex-col gap-1.5 w-full">
+                  {cart[item.id] ? (
+                    <div className="flex items-center justify-between bg-brand-500 rounded-xl px-2 py-1">
+                      <button onClick={() => removeFromCart(item.id)} className="text-white"><Minus size={12} /></button>
+                      <span className="text-white font-bold text-xs w-4 text-center">{cart[item.id]}</span>
+                      <button onClick={() => addToCart(item)} className="text-white"><Plus size={12} /></button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => addToCart(item)}
+                      className="flex items-center justify-center gap-1 py-1.5 bg-brand-500/10 border border-brand-500/30 text-brand-400 rounded-xl text-xs font-semibold hover:bg-brand-500 hover:text-white transition-all duration-200"
+                    >
+                      <Plus size={12} /> Add
+                    </button>
+                  )}
                   <button
-                    onClick={() => addToCart(item)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500/10 border border-brand-500/30 text-brand-400 rounded-xl text-sm font-semibold hover:bg-brand-500 hover:text-white transition-all duration-200"
+                    onClick={() => handleDirectBuy(item)}
+                    className="flex items-center justify-center gap-1 py-1 bg-green-500/10 border border-green-500/30 text-green-400 rounded-xl text-[10px] font-bold hover:bg-green-500 hover:text-white transition-all duration-200"
                   >
-                    <Plus size={14} /> Add
+                    ⚡ Buy Now
                   </button>
-                )}
+                </div>
               </div>
             </motion.div>
           ))}
