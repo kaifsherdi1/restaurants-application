@@ -1,0 +1,69 @@
+name: Production CI/CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  # ─── Lint & Build Verification ─────────────────────────────────
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root & Backend Dependencies
+        run: |
+          npm install
+          cd api-gateway && npm install
+          cd ../services/auth-service && npm install
+          cd ../restaurant-service && npm install
+          cd ../menu-service && npm install
+          cd ../cart-service && npm install
+          cd ../order-service && npm install
+          cd ../user-service && npm install
+          cd ../review-service && npm install
+          cd ../location-service && npm install
+          cd ../analytics-service && npm install
+          cd ../notification-service && npm install
+
+      - name: Install Frontend Dependencies & Verify Build
+        run: |
+          cd frontend
+          npm install
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://foodrush-backend.onrender.com
+
+  # ─── Automated Deployment ─────────────────────────────────────
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Render Deployment Trigger
+      - name: Trigger Render Deploy
+        run: |
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            curl -fX POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          else
+            echo "Skipping Render deploy trigger (no deploy hook configured)"
+          fi
+
+      # Vercel Deployment Trigger
+      - name: Deploy Frontend to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./frontend

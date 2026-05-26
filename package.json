@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "Multi-vendor Restaurant SaaS Platform – College Project",
   "scripts": {
-    "install:all": "npm install && cd services/auth-service && npm install && cd ../restaurant-service && npm install && cd ../menu-service && npm install && cd ../cart-service && npm install && cd ../order-service && npm install && cd ../../frontend && npm install",
+    "install:all": "npm install && npm run install:gateway && npm run install:services && npm run install:frontend",
+    "install:gateway": "cd api-gateway && npm install",
+    "install:services": "cd services/auth-service && npm install && cd ../restaurant-service && npm install && cd ../menu-service && npm install && cd ../cart-service && npm install && cd ../order-service && npm install && cd ../user-service && npm install && cd ../review-service && npm install && cd ../location-service && npm install && cd ../analytics-service && npm install && cd ../notification-service && npm install",
+    "install:frontend": "cd frontend && npm install",
     "start": "concurrently \"npm run start:gateway\" \"npm run start:auth\" \"npm run start:restaurant\" \"npm run start:menu\" \"npm run start:order\" \"npm run start:cart\" \"npm run start:frontend\" --names \"GATEWAY,AUTH,RESTAURANT,MENU,ORDER,CART,FRONTEND\" --prefix-colors \"cyan,yellow,green,blue,magenta,red,white\"",
     "start:gateway": "node load-balancer/index.js",
     "start:auth": "cd services/auth-service && node src/index.js",
@@ -12,10 +15,12 @@
     "start:order": "cd services/order-service && node src/index.js",
     "start:cart": "cd services/cart-service && node src/index.js",
     "start:frontend": "cd frontend && npm run dev",
+    "start:production": "pm2-runtime start ecosystem.config.js",
     "dev": "concurrently \"npm run start:gateway\" \"npm run start:auth\" \"npm run start:restaurant\" \"npm run start:menu\" \"npm run start:order\" \"npm run start:cart\" \"npm run start:frontend\" --names \"GW,AUTH,REST,MENU,ORDER,CART,UI\" --prefix-colors \"cyan,yellow,green,blue,magenta,red,white\"",
     "seed": "node scripts/seed.js"
   },
   "dependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "pm2": "^5.3.1"
   }
 }

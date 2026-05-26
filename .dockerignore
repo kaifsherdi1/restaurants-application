@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+frontend
+.git
+.github
+.env
+**/.env
+*.log
+docker-compose.override.yml
+C:\Users\admin\.gemini
+C:\Users\admin\.npm
+C:\Users\admin\.vscode

@@ -1,0 +1,215 @@
+version: '3.8'
+
+services:
+  # ─── API Gateway ────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USER_SERVICE_URL=http://user-service:3002
+      - RESTAURANT_SERVICE_URL=http://restaurant-service:3003
+      - MENU_SERVICE_URL=http://menu-service:3004
+      - CART_SERVICE_URL=http://cart-service:3006
+      - ORDER_SERVICE_URL=http://order-service:3007
+      - ANALYTICS_SERVICE_URL=http://analytics-service:3009
+      - REVIEW_SERVICE_URL=http://review-service:3010
+      - LOCATION_SERVICE_URL=http://location-service:3011
+      - FRONTEND_URL=https://foodrush.vercel.app
+    depends_on:
+      - redis
+
+  # ─── Microservices ─────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGO_URI=mongodb://mongodb:27017/auth-db
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secure-jwt-secret-key-goes-here
+    depends_on:
+      - mongodb
+      - rabbitmq
+
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - MONGO_URI=mongodb://mongodb:27017/user-db
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongodb
+      - rabbitmq
+
+  restaurant-service:
+    build:
+      context: ./services/restaurant-service
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - MONGO_URI=mongodb://mongodb:27017/restaurant-db
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongodb
+      - rabbitmq
+
+  menu-service:
+    build:
+      context: ./services/menu-service
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - MONGO_URI=mongodb://mongodb:27017/menu-db
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+
+  cart-service:
+    build:
+      context: ./services/cart-service
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3006
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - redis
+      - rabbitmq
+
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3007
+      - MONGO_URI=mongodb://mongodb:27017/order-db
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3008
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - rabbitmq
+
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3009
+      - MONGO_URI=mongodb://mongodb:27017/analytics-db
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+
+  review-service:
+    build:
+      context: ./services/review-service
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3010
+      - MONGO_URI=mongodb://mongodb:27017/review-db
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+
+  location-service:
+    build:
+      context: ./services/location-service
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3011
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - redis
+      - rabbitmq
+
+  # ─── NGINX Load Balancer ────────────────────────────────────────
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+    depends_on:
+      - api-gateway
+
+  # ─── Databases & Middleware ────────────────────────────────────
+  mongodb:
+    image: mongo:6.0
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis:7.0-alpine
+    restart: always
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    restart: always
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+volumes:
+  mongo-data:
+  redis-data:
+  rabbitmq-data:

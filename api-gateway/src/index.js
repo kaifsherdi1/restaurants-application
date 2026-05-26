@@ -136,4 +136,23 @@ server.listen(PORT, () => {
   logger.info(`🚀 API Gateway running on port ${PORT}`);
 });
 
+// Graceful Shutdown
+const shutdown = () => {
+  logger.info('SIGTERM/SIGINT received, shutting down gracefully...');
+  server.close(async () => {
+    logger.info('HTTP server closed.');
+    await redis.quit().catch(() => {});
+    logger.info('Redis connection closed. Exiting process.');
+    process.exit(0);
+  });
+  // Force close after 10s
+  setTimeout(() => {
+    logger.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+
 module.exports = { app, server, io };
