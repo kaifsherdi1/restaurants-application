@@ -5,8 +5,9 @@ RUN npm install -g pm2
 
 WORKDIR /app
 
-# Copy package.json files for dependency caching
+# ── Copy ALL package.json files first (layer caching) ──────────────
 COPY package*.json ./
+COPY load-balancer/package*.json ./load-balancer/
 COPY api-gateway/package*.json ./api-gateway/
 COPY services/auth-service/package*.json ./services/auth-service/
 COPY services/restaurant-service/package*.json ./services/restaurant-service/
@@ -19,25 +20,26 @@ COPY services/location-service/package*.json ./services/location-service/
 COPY services/analytics-service/package*.json ./services/analytics-service/
 COPY services/notification-service/package*.json ./services/notification-service/
 
-# Install dependencies
-RUN npm install --only=production
-RUN cd api-gateway && npm install --only=production
-RUN cd services/auth-service && npm install --only=production
-RUN cd services/restaurant-service && npm install --only=production
-RUN cd services/menu-service && npm install --only=production
-RUN cd services/cart-service && npm install --only=production
-RUN cd services/order-service && npm install --only=production
-RUN cd services/user-service && npm install --only=production
-RUN cd services/review-service && npm install --only=production
-RUN cd services/location-service && npm install --only=production
-RUN cd services/analytics-service && npm install --only=production
-RUN cd services/notification-service && npm install --only=production
+# ── Install dependencies ────────────────────────────────────────────
+RUN npm install --omit=dev
+RUN cd load-balancer && npm install --omit=dev
+RUN cd api-gateway && npm install --omit=dev
+RUN cd services/auth-service && npm install --omit=dev
+RUN cd services/restaurant-service && npm install --omit=dev
+RUN cd services/menu-service && npm install --omit=dev
+RUN cd services/cart-service && npm install --omit=dev
+RUN cd services/order-service && npm install --omit=dev
+RUN cd services/user-service && npm install --omit=dev
+RUN cd services/review-service && npm install --omit=dev
+RUN cd services/location-service && npm install --omit=dev
+RUN cd services/analytics-service && npm install --omit=dev
+RUN cd services/notification-service && npm install --omit=dev
 
-# Copy source code
+# ── Copy all source code ────────────────────────────────────────────
 COPY . .
 
-# Expose API Gateway port
-EXPOSE 3000
+# ── Expose main gateway port ────────────────────────────────────────
+EXPOSE 10000
 
-# Start services using PM2
+# ── Start all microservices via PM2 ────────────────────────────────
 CMD ["pm2-runtime", "start", "ecosystem.config.js"]

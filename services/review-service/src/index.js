@@ -5,8 +5,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const logger = require('./utils/logger');
-const { connectRabbitMQ, subscribeEvent } = require('./config/rabbitmq');
-const Review = require('./models/Review');
+const { connectRabbitMQ } = require('./config/rabbitmq');
 const reviewRoutes = require('./routes/review.routes');
 
 const app = express();
@@ -18,12 +17,23 @@ app.get('/health', (_, res) => res.json({ status: 'ok', service: 'review-service
 app.use((err, req, res, next) => res.status(500).json({ success: false, message: err.message }));
 
 const start = async () => {
-  await mongoose.connect(process.env.MONGO_URI);
-  logger.info('✅ Connected to MongoDB (reviews-db)');
-  await connectRabbitMQ();
+  try {
+    if (process.env.MONGO_URI) {
+      await mongoose.connect(process.env.MONGO_URI);
+      logger.info('Connected to MongoDB (reviews-db)');
+    } else {
+      logger.warn('MONGO_URI not set – running without database');
+    }
+    if (process.env.RABBITMQ_URL) {
+      await connectRabbitMQ().catch(e => logger.warn('RabbitMQ optional – skipping: ' + e.message));
+    }
+  } catch (err) {
+    logger.warn('Startup warning: ' + err.message);
+  }
+
   const PORT = process.env.PORT || 3010;
-  app.listen(PORT, () => logger.info(`🚀 Review Service on port ${PORT}`));
+  app.listen(PORT, () => logger.info(`Review Service on port ${PORT}`));
 };
 
-start().catch(err => { logger.error(err); process.exit(1); });
+start();
 module.exports = app;

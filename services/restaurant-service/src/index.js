@@ -25,13 +25,24 @@ app.use((err, req, res, next) => {
 });
 
 const start = async () => {
-  await mongoose.connect(process.env.MONGO_URI);
-  logger.info('✅ Connected to MongoDB (restaurants-db)');
-  await connectRabbitMQ();
-  await connectRedis();
+  try {
+    if (process.env.MONGO_URI) {
+      await mongoose.connect(process.env.MONGO_URI);
+      logger.info('Connected to MongoDB (restaurants-db)');
+    } else {
+      logger.warn('MONGO_URI not set – running without database');
+    }
+    if (process.env.RABBITMQ_URL) {
+      await connectRabbitMQ().catch(e => logger.warn('RabbitMQ optional – skipping: ' + e.message));
+    }
+    await connectRedis().catch(e => logger.warn('Redis optional – skipping: ' + e.message));
+  } catch (err) {
+    logger.warn('Startup warning: ' + err.message);
+  }
+
   const PORT = process.env.PORT || 3003;
-  app.listen(PORT, () => logger.info(`🚀 Restaurant Service on port ${PORT}`));
+  app.listen(PORT, () => logger.info(`Restaurant Service on port ${PORT}`));
 };
 
-start().catch(err => { logger.error(err); process.exit(1); });
+start();
 module.exports = app;

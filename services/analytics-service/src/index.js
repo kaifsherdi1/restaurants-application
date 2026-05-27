@@ -6,7 +6,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const logger = require('./utils/logger');
 const { connectRabbitMQ, subscribeEvent } = require('./config/rabbitmq');
-const Analytics = require('./models/Analytics');
 const analyticsRoutes = require('./routes/analytics.routes');
 
 const app = express();
@@ -18,25 +17,24 @@ app.get('/health', (_, res) => res.json({ status: 'ok', service: 'analytics-serv
 app.use((err, req, res, next) => res.status(500).json({ success: false, message: err.message }));
 
 const start = async () => {
-  await mongoose.connect(process.env.MONGO_URI);
-  logger.info('✅ Connected to MongoDB (analytics-db)');
-  await connectRabbitMQ();
+  try {
+    if (process.env.MONGO_URI) {
+      await mongoose.connect(process.env.MONGO_URI);
+      logger.info('Connected to MongoDB (analytics-db)');
+    } else {
+      logger.warn('MONGO_URI not set – running without database');
+    }
 
-  // Subscribe to order events for analytics tracking
-  await subscribeEvent('analytics-order-queue', 'order.created', async (data) => {
-    await Analytics.create({
-      eventType: 'order',
-      restaurantId: data.restaurantId,
-      customerId: data.customerId,
-      amount: data.totalAmount,
-      items: data.items,
-      metadata: data
-    });
-  });
+    if (process.env.RABBITMQ_URL) {
+      await connectRabbitMQ().catch(e => logger.warn('RabbitMQ optional – skipping: ' + e.message));
+    }
+  } catch (err) {
+    logger.warn('Startup warning: ' + err.message);
+  }
 
   const PORT = process.env.PORT || 3009;
-  app.listen(PORT, () => logger.info(`🚀 Analytics Service on port ${PORT}`));
+  app.listen(PORT, () => logger.info(`Analytics Service on port ${PORT}`));
 };
 
-start().catch(err => { logger.error(err); process.exit(1); });
+start();
 module.exports = app;

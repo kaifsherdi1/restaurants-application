@@ -18,11 +18,20 @@ app.get('/health', (_, res) => res.json({ status: 'ok', service: 'menu-service' 
 app.use((err, req, res, next) => res.status(500).json({ success: false, message: err.message }));
 
 const start = async () => {
-  await mongoose.connect(process.env.MONGO_URI);
-  logger.info('✅ Connected to MongoDB (menu-db)');
+  try {
+    if (process.env.MONGO_URI) {
+      await mongoose.connect(process.env.MONGO_URI);
+      logger.info('Connected to MongoDB (menu-db)');
+    } else {
+      logger.warn('MONGO_URI not set – running without database');
+    }
+  } catch (err) {
+    logger.warn('Startup warning: ' + err.message);
+  }
+
   const PORT = process.env.PORT || 3004;
-  app.listen(PORT, () => logger.info(`🚀 Menu Service on port ${PORT}`));
+  app.listen(PORT, () => logger.info(`Menu Service on port ${PORT}`));
 };
 
-start().catch(err => { logger.error(err); process.exit(1); });
+start();
 module.exports = app;
